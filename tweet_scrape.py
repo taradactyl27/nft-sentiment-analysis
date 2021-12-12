@@ -18,15 +18,18 @@ filename = "_".join(sys.argv[1].split(" ")) + ".csv"
 print("Collecting tweets for:", sys.argv[1])
 print("Writing results to", filename)
 
+
+tweets = pd.Series()
+timestamps = pd.Series()
+
 try:
     df = pd.read_csv("./data/{}".format(filename))
     tweets = df["tweets"]
     timestamps = df["timestamps"]
 
 except Exception:
-    tweets = pd.Series()
-    timestamps = pd.Series()
-    
+    print('unable to read from file')
+
 class Listener(Stream):
     def on_data(self,data):
         try:
