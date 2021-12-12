@@ -35,14 +35,14 @@ class Listener(Stream):
         try:
             resp = json.loads(data.decode('utf8'))
 
-            tweets = tweets.append(pd.Series(resp["text"]))
-            timestamps = timestamps.append(pd.Series(resp["created_at"]))
+            self.tweets = self.tweets.append(pd.Series(resp["text"]))
+            self.timestamps = self.timestamps.append(pd.Series(resp["created_at"]))
 
             self.count += 1
             print("collected",self.count,"tweets")
 
             if self.count % 10 == 0:
-                df = pd.DataFrame([tweets, timestamps], columns=["tweets","timestamps"])
+                df = pd.DataFrame([self.tweets, self.timestamps], columns=["tweets","timestamps"])
                 df.to_csv(filename)
 
         except Exception as e:
@@ -55,4 +55,7 @@ class Listener(Stream):
 
 stream = Listener(consumer_key, consumer_secret, access_token, access_token_secret)
 stream.count = 0
+stream.tweets = tweets
+stream.timestamps = timestamps
+
 stream.filter(track=[sys.argv[1]])
