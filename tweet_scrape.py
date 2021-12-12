@@ -1,5 +1,9 @@
 import tweepy
 import time
+import json
+import sys
+
+from tweepy import Stream
 
 # create file twitter_credentials.py with these credential fields from the twitter API
 from twitter_credentials import consumer_key, consumer_secret, access_token, access_token_secret
@@ -9,24 +13,28 @@ auth.set_access_token(access_token, access_token_secret)
 
 api = tweepy.API(auth)
 
-positive_projects = [
-    "Bored Ape Yacht Club",
-    "Cool Cat Club",
-    "Gutter Cat Gang"
-]
-negative_projects = [
-]
+filename = "_".join(sys.argv[1].split(" "))
+print("Collecting tweets for:", sys.argv[1])
+print("Writing results to", filename)
 
-for i in range(20):
-    print("Getting data. Iteration",i+1)
-    for proj in positive_projects + negative_projects:
-        text = ""
-        # get this to run every x min
-        public_tweets = api.search_tweets(proj)
-        for tweet in public_tweets:
-            text += tweet.text + " "
+class Listener(Stream):
+    def on_data(self,data):
+        try:
+            text = json.loads(data.decode('utf8'))['text']
+            with open("./data/{}.txt".format(filename),"a") as f:
+                f.write(text)
 
-        with open("./data/" + proj.replace(" ","_") + "_text.txt", "a") as f:
-            f.write(text)
+            self.count += 1
+            print("collected",self.count,"tweets")
 
-    time.sleep(60*5)
+        except Exception as e:
+            print(e)
+
+        return True
+
+    def on_request_error(self,status):
+        print(status)
+
+stream = Listener(consumer_key, consumer_secret, access_token, access_token_secret)
+stream.count = 0
+stream.filter(track=[sys.argv[1]])
