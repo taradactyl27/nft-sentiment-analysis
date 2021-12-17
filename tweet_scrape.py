@@ -14,48 +14,26 @@ auth.set_access_token(access_token, access_token_secret)
 
 api = tweepy.API(auth)
 
-filename = "_".join(sys.argv[1].split(" ")) + ".csv"
-print("Collecting tweets for:", sys.argv[1])
-print("Writing results to", filename)
+genuine_proj = ["cool cats nft", "world of women nft", "robotos nft", "doodles nft"]
+scam_proj = ["angry anglers", "baller ape club"]
 
+for proj in genuine_proj + scam_proj:
+    filename = "_".join(proj.split(" ")) + ".csv"
+    print("Collecting tweets for:", proj)
+    print("Writing results to", filename)
 
-tweets = pd.Series()
-timestamps = pd.Series()
+    resp = api.search_full_archive("prod", proj)
 
-try:
-    df = pd.read_csv("./data/{}".format(filename))
-    tweets = df["tweets"]
-    timestamps = df["timestamps"]
+    tweets = []
+    timestamps = []
 
-except Exception:
-    print('unable to read from file')
+    for status in resp:
+        tweets.append(status.text)
+        timestamps.append(status.created_at)
 
-class Listener(Stream):
-    def on_data(self,data):
-        try:
-            resp = json.loads(data.decode('utf8'))
+    df = pd.DataFrame({
+            "tweets": pd.Series(tweets),
+            "timestamps": pd.Series(timestamps)
+            })
 
-            self.tweets = self.tweets.append(pd.Series(resp["text"]))
-            self.timestamps = self.timestamps.append(pd.Series(resp["created_at"]))
-
-            self.count += 1
-            print("collected",self.count,"tweets")
-
-            if self.count % 10 == 0:
-                df = pd.DataFrame([self.tweets, self.timestamps], columns=["tweets","timestamps"])
-                df.to_csv(filename)
-
-        except Exception as e:
-            print(e)
-
-        return True
-
-    def on_request_error(self,status):
-        print(status)
-
-stream = Listener(consumer_key, consumer_secret, access_token, access_token_secret)
-stream.count = 0
-stream.tweets = tweets
-stream.timestamps = timestamps
-
-stream.filter(track=[sys.argv[1]])
+    df.to_csv(filename)
